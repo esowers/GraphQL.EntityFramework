@@ -79,6 +79,12 @@ static class ComplexGraphResolver
                     type = resolvedEntityType.BaseType;
                     continue;
                 }
+                if (genericTypeDefinition == typeof(ConnectionType<,>))
+                {
+                    var resolvedEntityType = type.GetGenericArguments().First();
+                    type = resolvedEntityType.BaseType;
+                    continue;
+                }
             }
             type = type.BaseType;
         }

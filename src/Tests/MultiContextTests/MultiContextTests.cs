@@ -1,4 +1,5 @@
-﻿using System.Threading.Tasks;
+﻿using System.Collections.Generic;
+using System.Threading.Tasks;
 using EfLocalDb;
 using GraphQL;
 using GraphQL.EntityFramework;
@@ -8,7 +9,7 @@ using VerifyXunit;
 using Xunit;
 using Xunit.Abstractions;
 
-public class MultiContextTests:
+public class MultiContextTests :
     VerifyBase
 {
     [Fact]
@@ -71,22 +72,23 @@ public class MultiContextTests:
         #region RegisterMultipleInContainer
         EfGraphQLConventions.RegisterInContainer(
             services,
-            userContext => ((UserContext) userContext).DbContext1);
+            userContext => (DbContext1)((Dictionary<string, object>)userContext)["dbContext1"]);
         EfGraphQLConventions.RegisterInContainer(
             services,
-            userContext => ((UserContext) userContext).DbContext2);
+            userContext => (DbContext2)((Dictionary<string, object>)userContext)["dbContext2"]);
         #endregion
 
         await using var provider = services.BuildServiceProvider();
-        using var schema = new MultiContextSchema(new FuncDependencyResolver(provider.GetRequiredService));
+        using var schema = new MultiContextSchema(provider);
         var documentExecuter = new EfDocumentExecuter();
         #region MultiExecutionOptions
         var executionOptions = new ExecutionOptions
         {
             Schema = schema,
             Query = query,
-            UserContext = new UserContext(dbContext1,dbContext2)
         };
+        executionOptions.UserContext.Add("dbContext1", dbContext1);
+        executionOptions.UserContext.Add("dbContext2", dbContext2);
         #endregion
 
         var executionResult = await documentExecuter.ExecuteWithErrorCheck(executionOptions);

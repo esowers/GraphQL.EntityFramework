@@ -1,5 +1,6 @@
 ﻿using GraphQL.EntityFramework;
 using GraphQL.Types;
+using System.Collections.Generic;
 
 public class MultiContextQuery :
     ObjectGraphType
@@ -13,16 +14,16 @@ public class MultiContextQuery :
             name: "entity1",
             resolve: context =>
             {
-                var userContext = (UserContext) context.UserContext;
-                return userContext.DbContext1.Entities;
+                var userContext = (DbContext1)((Dictionary<string, object>)context.UserContext)["dbContext1"];
+                return userContext.Entities;
             });
         efGraphQlService2.AddSingleField(
             graph: this,
             name: "entity2",
             resolve: context =>
             {
-                var userContext = (UserContext) context.UserContext;
-                return userContext.DbContext2.Entities;
+                var userContext = (DbContext2)((Dictionary<string, object>)context.UserContext)["dbContext2"];
+                return userContext.Entities;
             });
     }
 }

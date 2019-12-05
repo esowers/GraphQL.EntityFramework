@@ -8,7 +8,7 @@
     <PackageReference Include="Fody" Version="6.0.5" PrivateAssets="all" />
     <PackageReference Include="Microsoft.AspNetCore.Http" Version="2.2.2" />
     <PackageReference Include="ModuleInit.Fody" Version="2.1.0" PrivateAssets="All" />
-    <PackageReference Include="GraphQL" Version="2.4.0" />
+    <PackageReference Include="GraphQL" Version="3.0.0-preview-1352" />
     <PackageReference Include="Microsoft.CSharp" Version="4.7.0" />
     <PackageReference Include="Microsoft.EntityFrameworkCore" Version="3.1.0" />
     <PackageReference Include="Nullable" Version="1.1.1" PrivateAssets="All" />

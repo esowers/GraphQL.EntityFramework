@@ -1,3 +1,4 @@
+using System.Collections.Generic;
 using System.Threading.Tasks;
 using GraphQL;
 using GraphQL.EntityFramework;
@@ -17,12 +18,12 @@ static class QueryExecutor
         query = query.Replace("'", "\"");
         EfGraphQLConventions.RegisterInContainer(
             services,
-            userContext => dbContext,
+            userContext => (TDbContext)((Dictionary<string, object>)userContext)[typeof(TDbContext).Name],
             dbContext.Model,
             userContext => filters);
         EfGraphQLConventions.RegisterConnectionTypesInContainer(services);
         await using var provider = services.BuildServiceProvider();
-        using var schema = new Schema(new FuncDependencyResolver(provider.GetRequiredService));
+        using var schema = new Schema(provider);
         var documentExecuter = new EfDocumentExecuter();
 
         #region ExecutionOptionsWithFixIdTypeRule
@@ -30,10 +31,10 @@ static class QueryExecutor
         {
             Schema = schema,
             Query = query,
-            UserContext = dbContext,
             Inputs = inputs,
             ValidationRules = FixIdTypeRule.CoreRulesWithIdFix
         };
+        executionOptions.UserContext.Add(typeof(TDbContext).Name, dbContext);
         #endregion
 
         var executionResult = await documentExecuter.ExecuteWithErrorCheck(executionOptions);

@@ -30,7 +30,7 @@ namespace GraphQL.EntityFramework
             field.AddWhereArgument(arguments);
         }
 
-        ConnectionBuilder<FakeGraph, TSource> BuildListConnectionField<TSource, TReturn>(
+        ConnectionBuilder<TSource> BuildListConnectionField<TSource, TReturn>(
             string name,
             Func<ResolveEfFieldContext<TDbContext, TSource>, IEnumerable<TReturn>> resolve,
             IEnumerable<string>? includeName,
@@ -44,14 +44,10 @@ namespace GraphQL.EntityFramework
 
             //lookup the graph type if not explicitly specified
             graphType ??= GraphTypeFinder.FindGraphType<TReturn>();
-            //create a ConnectionBuilder<graphType, TSource> type by invoking the static Create method on the generic type
-            var fieldType = GetFieldType<TSource>(name, graphType);
-            //create a ConnectionBuilder<FakeGraph, TSource> which will be returned from this method
-            var builder = ConnectionBuilder<FakeGraph, TSource>.Create(name);
+            //create a ConnectionBuilder<graphType, TSource> type by invoking the static Create<graphType> method on the generic type
+            var builder = GetConnectionBuilder<TSource>(name, graphType);
             //set the page size
-            builder.PageSize(pageSize);
-            //using reflection, override the private field type property of the ConnectionBuilder<FakeGraph, TSource> to be the ConnectionBuilder<graphType, TSource> object
-            SetField(builder, fieldType);
+            builder.PageSize(pageSize);            
             //add the metadata for the tables to be included in the query to the ConnectionBuilder<graphType, TSource> object
             IncludeAppender.SetIncludeMetadata(builder.FieldType, name, includeName);
             //set the custom resolver
@@ -79,21 +75,14 @@ namespace GraphQL.EntityFramework
             return builder;
         }
 
-        static void SetField(object builder, object fieldType)
+        static ConnectionBuilder<TSource> GetConnectionBuilder<TSource>(string name, Type graphType)
         {
-            var fieldTypeField = builder.GetType().GetProperty("FieldType", BindingFlags.NonPublic | BindingFlags.Public | BindingFlags.Instance);
-            fieldTypeField.SetValue(builder, fieldType);
-        }
-
-        static object GetFieldType<TSource>(string name, Type graphType)
-        {
-            var makeGenericType = typeof(ConnectionBuilder<,>).MakeGenericType(graphType, typeof(TSource));
-            dynamic x = makeGenericType.GetMethod("Create").Invoke(null, new object[] { name });
-            return x.FieldType;
-        }
-
-        class FakeGraph : GraphType
-        {
+            var paramExp = System.Linq.Expressions.Expression.Parameter(typeof(string));
+            var bodyExp = System.Linq.Expressions.Expression.Call(typeof(ConnectionBuilder<TSource>), "Create", new[] { graphType }, paramExp);
+            var lambda = System.Linq.Expressions.Expression.Lambda<Func<string, ConnectionBuilder<TSource>>>(bodyExp, paramExp);
+            var compiled = lambda.Compile();
+            var x = compiled(name);
+            return x;
         }
     }
 }
